@@ -3,13 +3,13 @@
 require_relative "lib/dtext/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "dtext_rb"
+  spec.name = "idtext_rb"
   spec.version = DText::VERSION
   spec.authors = ["r888888888", "evazion"]
   spec.email = ["noizave@gmail.com"]
 
   spec.summary = "Danbooru DText Parser"
-  spec.homepage = "https://github.com/notWolfxd/dtext_rb/tree/idol"
+  spec.homepage = "https://github.com/notWolfxd/idtext_rb"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.6.0"
   spec.extensions = ["ext/dtext/extconf.rb"]

@@ -72,7 +72,7 @@ class DText
           ch = ""
         end
 
-        '<a href="/user/show?name=' + u(CGI.unescapeHTML(name[1..-1])) + '">' + name + '</a>' + ch
+        '<a href="/users?name=' + u(CGI.unescapeHTML(name[1..-1])) + '">' + name + '</a>' + ch
       end
       str
     end
@@ -132,19 +132,19 @@ class DText
     end
 
     def self.parse_id_links(str)
-      str = str.gsub(/\bpost #(\d+)/i, %{<a href="/post/show/\\1">post #\\1</a>})
-      str = str.gsub(/\bforum #(\d+)/i, %{<a href="/forum/show/\\1">forum #\\1</a>})
-      str = str.gsub(/\bcomment #(\d+)/i, %{<a href="/comment/show/\\1">comment #\\1</a>})
-      str = str.gsub(/\bpool #(\d+)/i, %{<a href="/pool/show/\\1">pool #\\1</a>})
-      str = str.gsub(/\buser #(\d+)/i, %{<a href="/user/show/\\1">user #\\1</a>})
-      str = str.gsub(/\bartist #(\d+)/i, %{<a href="/artist/show/\\1">artist #\\1</a>})
-      str = str.gsub(/\btag alias #(\d+)/i, %{<a href="https:\/\/beta.sankakucomplex.com/tag_aliases?id[0]=\\1">tag alias #\\1</a>})
-      str = str.gsub(/\btag implication #(\d+)/i, %{<a href="https:\/\/beta.sankakucomplex.com/tag_implications?id[0]=\\1">tag implication #\\1</a>})
-      str = str.gsub(/\btag translation #(\d+)/i, %{<a href="https:\/\/beta.sankakucomplex.com/tag_translations?id[0]=\\1">tag translation #\\1</a>})
-      str = str.gsub(/\buser report #(\d+)/i, %{<a href="/user_flag/show/\\1">user report #\\1</a>})
-      str = str.gsub(/\brecord #(\d+)/i, %{<a href="/user_record/index?record_id=\\1">record #\\1</a>})
-      str = str.gsub(/\bbook #(\d+)/i, %{<a href="https:\/\/beta.sankakucomplex.com/books/\\1">book #\\1</a>})
-      str = str.gsub(/\bseries #(\d+)/i, %{<a href="https:\/\/beta.sankakucomplex.com/series/\\1">series #\\1</a>})
+      str = str.gsub(/\bpost #(\d+)/i, %{<a href="/posts/\\1">post #\\1</a>})
+      str = str.gsub(/\bforum #(\d+)/i, %{<a href="/forums/\\1">forum #\\1</a>})
+      str = str.gsub(/\bcomment #(\d+)/i, %{<a href="/comments/\\1">comment #\\1</a>})
+      str = str.gsub(/\bpool #(\d+)/i, %{<a href="/pools/\\1">pool #\\1</a>})
+      str = str.gsub(/\buser #(\d+)/i, %{<a href="/users/\\1">user #\\1</a>})
+      str = str.gsub(/\bartist #(\d+)/i, %{<a href="/artists/\\1">artist #\\1</a>})
+      str = str.gsub(/\btag alias #(\d+)/i, %{<a href="/tag_aliases?id=\\1">tag alias #\\1</a>})
+      str = str.gsub(/\btag implication #(\d+)/i, %{<a href="/tag_implications?id=\\1">tag implication #\\1</a>})
+      str = str.gsub(/\btag translation #(\d+)/i, %{<a href="/tag_translations?id=\\1">tag translation #\\1</a>})
+      str = str.gsub(/\buser report #(\d+)/i, %{<a href="/user_flags/\\1">user report #\\1</a>})
+      str = str.gsub(/\brecord #(\d+)/i, %{<a href="/user_records?record_id=\\1">record #\\1</a>})
+      str = str.gsub(/\bbook #(\d+)/i, %{<a href="/pools/\\1">book #\\1</a>})
+      str = str.gsub(/\bseries #(\d+)/i, %{<a href="/series/\\1">series #\\1</a>})
       str = str.gsub(/\bpixiv #(\d+)(?!\/p\d|\d)/i, %{<a href="https://www.pixiv.net/member_illust.php?mode=medium&illust_id=\\1">pixiv #\\1</a>})
       str = str.gsub(/\bpixiv #(\d+)\/p(\d+)/i, %{<a href="https://www.pixiv.net/member_illust.php?mode=manga_big&illust_id=\\1&page=\\2">pixiv #\\1/p\\2</a>})
     end
