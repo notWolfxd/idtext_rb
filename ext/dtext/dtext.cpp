@@ -4251,7 +4251,7 @@ static void append_internal_url(StateMachine * sm, const DText::URL& url) {
         return append_id_link(sm, "artist", "artist", "/artists/", id);
       } else if (controller == "wiki" && fragment.empty()) {
         // http://danbooru.donmai.us/wiki_pages/10933#dtext-self-upload
-        return append_id_link(sm, "wiki", "wiki-page", "/wiki/show/", id);
+        return append_id_link(sm, "wiki", "wiki-page", "/wiki/", id);
       }
     } else if (controller == "wiki" && fragment.empty()) {
       return append_wiki_link(sm, {}, id, {}, id, {});
@@ -4355,7 +4355,7 @@ static void append_wiki_link(StateMachine * sm, const std::string_view prefix, c
   }
 
   append(sm, "<a class=\"dtext-link dtext-wiki-link\" href=\"");
-  append_relative_url(sm, "/wiki/show?title=");
+  append_relative_url(sm, "/wiki/");
   append_uri_escaped(sm, normalized_tag);
 
   if (!anchor.empty()) {
@@ -5372,7 +5372,7 @@ _eof_trans:
 	break;
 	case 83:
 #line 311 "ext/dtext/dtext.cpp.rl"
-	{( sm->te) = ( sm->p);( sm->p)--;{ append_id_link(sm, "wiki", "wiki-page", "/wiki/show/", { sm->a1, sm->a2 }); }}
+	{( sm->te) = ( sm->p);( sm->p)--;{ append_id_link(sm, "wiki", "wiki-page", "/wiki/", { sm->a1, sm->a2 }); }}
 	break;
 	case 84:
 #line 313 "ext/dtext/dtext.cpp.rl"

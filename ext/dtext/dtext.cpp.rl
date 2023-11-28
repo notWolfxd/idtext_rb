@@ -308,7 +308,7 @@ inline := |*
   'series #'i id      => { append_id_link(sm, "series", "series", "/series/", { sm->a1, sm->a2 }); };
   'mod action #'i id       => { append_id_link(sm, "mod action", "mod-action", "/mod_actions?id=", { sm->a1, sm->a2 }); };
   'record #'i id         => { append_id_link(sm, "record", "user-record", "/user_records?id=", { sm->a1, sm->a2 }); };
-  'wiki #'i id             => { append_id_link(sm, "wiki", "wiki-page", "/wiki/show/", { sm->a1, sm->a2 }); };
+  'wiki #'i id             => { append_id_link(sm, "wiki", "wiki-page", "/wiki/", { sm->a1, sm->a2 }); };
 
   'dmail #'i id '/' dmail_key => { append_dmail_key_link(sm); };
 
@@ -966,7 +966,7 @@ static void append_internal_url(StateMachine * sm, const DText::URL& url) {
         return append_id_link(sm, "artist", "artist", "/artists/", id);
       } else if (controller == "wiki" && fragment.empty()) {
         // http://danbooru.donmai.us/wiki_pages/10933#dtext-self-upload
-        return append_id_link(sm, "wiki", "wiki-page", "/wiki/show/", id);
+        return append_id_link(sm, "wiki", "wiki-page", "/wiki/", id);
       }
     } else if (controller == "wiki" && fragment.empty()) {
       return append_wiki_link(sm, {}, id, {}, id, {});
@@ -1070,7 +1070,7 @@ static void append_wiki_link(StateMachine * sm, const std::string_view prefix, c
   }
 
   append(sm, "<a class=\"dtext-link dtext-wiki-link\" href=\"");
-  append_relative_url(sm, "/wiki/show?title=");
+  append_relative_url(sm, "/wiki/");
   append_uri_escaped(sm, normalized_tag);
 
   if (!anchor.empty()) {
