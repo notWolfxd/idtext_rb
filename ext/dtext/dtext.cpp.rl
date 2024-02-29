@@ -208,7 +208,7 @@ search_suffix = alnum* >mark_d1 %mark_d2;
 basic_post_search_link = search_prefix '{{' ws* tags ws* '}}' search_suffix;
 aliased_post_search_link = search_prefix '{{' ws* tags ws* '|' ws* search_title ws* '}}' search_suffix;
 
-id = digit+ >mark_a1 %mark_a2;
+id = (alnum{11} | digit+) >mark_a1 %mark_a2;
 alnum_id = alnum+ >mark_a1 %mark_a2;
 page = digit+ >mark_b1 %mark_b2;
 dmail_key = (alnum | '=' | '-')+ >mark_b1 %mark_b2;
