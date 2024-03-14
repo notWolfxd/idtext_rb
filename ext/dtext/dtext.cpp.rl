@@ -179,7 +179,7 @@ basic_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':' (bare_absolute_url | ba
 bracketed_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':[' (delimited_absolute_url | delimited_relative_url) >mark_b1 %mark_b2 :>> ']';
 
 # XXX: internal markdown links aren't allowed to avoid parsing closing tags as links: `[b]foo[/b](bar)`.
-markdown_link = '[' delimited_absolute_url >mark_a1 %mark_a2 :>> '](' nonnewline+ >mark_b1 %mark_b2 :>> ')';
+markdown_link = '[' nonnewline+ >mark_b1 %mark_b2 :>> '](' delimited_absolute_url >mark_a1 %mark_a2 :>> ')';
 html_link = '<a'i ws+ 'href="'i (delimited_absolute_url | delimited_relative_url) >mark_a1 %mark_a2 :>> '">' nonnewline+ >mark_b1 %mark_b2 :>> '</a>'i;
 
 unquoted_bbcode_url = delimited_absolute_url | delimited_relative_url;
@@ -262,7 +262,7 @@ close_spoilers = ('[/spoiler'i 's'i? ']') | ('</spoiler'i 's'i? '>');
 close_nodtext = '[/nodtext]'i | '</nodtext>'i;
 close_quote = '[/quote'i (']' when in_quote) | '</quote'i ('>' when in_quote) | '</blockquote'i (']' when in_quote);
 close_expand = '[/expand'i (']' when in_expand) | '</expand'i ('>' when in_expand);
-close_color = '[/color'i (']' when in_color) | '</color'i ('>' when in_color);
+close_color = '[/color]'i | '</color>'i | '[/color'i (']' when in_color) | '</color'i ('>' when in_color);
 close_code = '[/code]'i | '</code>'i;
 close_table = '[/table]'i | '</table>'i;
 close_colgroup = '[/colgroup]'i | '</colgroup>'i;
@@ -390,15 +390,38 @@ inline := |*
   };
 
   open_center => {
-    dstack_open_element(sm, INLINE_CENTER, "<span class=\"center\">");
+    g_debug("inline [center]");
+    dstack_open_element(sm, INLINE_CENTER, "<div class=\"center\">");
   };
 
-  newline* close_center => {
+  newline* close_center newline? => {
     g_debug("inline [/center]");
 
     if (dstack_check(sm, INLINE_CENTER)) {
       dstack_close_element(sm, INLINE_CENTER);
     } else if (dstack_close_element(sm, BLOCK_CENTER)) {
+      fret;
+    }
+  };
+
+  open_color => {
+    g_debug("inline [color]");
+    dstack_open_element(sm, INLINE_COLOR, "<span style=\"color:#FF761C;\">");
+  };
+
+  aliased_color => {
+    g_debug("inline [color=]");
+    dstack_open_element(sm, INLINE_COLOR, "<span style=\"color:");
+    append_html_escaped(sm, { sm->a1, sm->a2 });
+    append(sm, "\">");
+  };
+
+  newline* close_color => {
+    g_debug("inline [/color]");
+
+    if (dstack_check(sm, INLINE_COLOR)) {
+      dstack_close_element(sm, INLINE_COLOR);
+    } else if (dstack_close_element(sm, BLOCK_COLOR)) {
       fret;
     }
   };
@@ -491,19 +514,6 @@ inline := |*
   newline? close_expand ws* => {
     g_debug("inline [/expand]");
     dstack_close_until(sm, BLOCK_EXPAND);
-    fret;
-  };
-
-  (open_color | aliased_color) => {
-    g_debug("inline [color]");
-    dstack_close_leaf_blocks(sm);
-    fexec sm->ts;
-    fret;
-  };
-
-  newline? close_color ws* => {
-    g_debug("inline [/color]");
-    dstack_close_until(sm, BLOCK_COLOR);
     fret;
   };
 
@@ -707,17 +717,18 @@ main := |*
     append_block(sm, "</summary><div>");
   };
 
-  open_color space* => {
-    dstack_close_leaf_blocks(sm);
-    dstack_open_element(sm, BLOCK_COLOR, "<span style=\"color:#FF761C;\">");
+  open_color => {
+    g_debug("block [color]");
+    dstack_open_element(sm, BLOCK_COLOR, "<p style=\"color:#FF761C;\">");
+    fcall inline;
   };
 
-  aliased_color space* => {
+  aliased_color => {
     g_debug("block [color=]");
-    dstack_close_leaf_blocks(sm);
-    dstack_open_element(sm, BLOCK_COLOR, "<span style=\"color:");
+    dstack_open_element(sm, BLOCK_COLOR, "<p style=\"color:");
     append_block_html_escaped(sm, { sm->a1, sm->a2 });
     append_block(sm, "\">");
+    fcall inline;
   };
 
   open_nodtext blank_line? => {
@@ -737,7 +748,8 @@ main := |*
     fcall inline;
   };
 
-  open_center => {
+  ws* open_center => {
+    g_debug("block [center]");
     dstack_open_element(sm, BLOCK_CENTER, "<p class=\"center\">");
     fcall inline;
   };
@@ -762,7 +774,7 @@ main := |*
     g_debug("block char");
     fhold;
 
-    if (sm->dstack.empty() || dstack_check(sm, BLOCK_QUOTE) || dstack_check(sm, BLOCK_SPOILER) || dstack_check(sm, BLOCK_EXPAND) || dstack_check(sm, BLOCK_COLOR)) {
+    if (sm->dstack.empty() || dstack_check(sm, BLOCK_QUOTE) || dstack_check(sm, BLOCK_SPOILER) || dstack_check(sm, BLOCK_EXPAND)) {
       dstack_open_element(sm, BLOCK_P, "<p>");
     }
 
@@ -1268,7 +1280,6 @@ static void dstack_rewind(StateMachine * sm) {
     case BLOCK_SPOILER: append_block(sm, "</div>"); break;
     case BLOCK_QUOTE: append_block(sm, "</blockquote>"); break;
     case BLOCK_EXPAND: append_block(sm, "</div></details>"); break;
-    case BLOCK_COLOR: append_block(sm, "</span>"); break;
     case BLOCK_NODTEXT: append_block(sm, "</p>"); break;
     case BLOCK_CODE: append_block(sm, "</pre>"); break;
     case BLOCK_TD: append_block(sm, "</td>"); break;
@@ -1280,11 +1291,13 @@ static void dstack_rewind(StateMachine * sm) {
     case INLINE_U: append(sm, "</u>"); break;
     case INLINE_S: append(sm, "</s>"); break;
     case INLINE_TN: append(sm, "</span>"); break;
-    case INLINE_CENTER: append(sm, "</span>"); break;
+    case INLINE_CENTER: append(sm, "</div>"); break;
+    case INLINE_COLOR: append(sm, "</span>"); break;
     case INLINE_CODE: append(sm, "</code>"); break;
 
     case BLOCK_TN: append_closing_p(sm); break;
     case BLOCK_CENTER: append_closing_p(sm); break;
+    case BLOCK_COLOR: append_closing_p(sm); break;
     case BLOCK_TABLE: append_block(sm, "</table>"); break;
     case BLOCK_COLGROUP: append_block(sm, "</colgroup>"); break;
     case BLOCK_THEAD: append_block(sm, "</thead>"); break;
