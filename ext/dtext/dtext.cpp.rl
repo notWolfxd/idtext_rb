@@ -179,7 +179,7 @@ basic_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':' (bare_absolute_url | ba
 bracketed_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':[' (delimited_absolute_url | delimited_relative_url) >mark_b1 %mark_b2 :>> ']';
 
 # XXX: internal markdown links aren't allowed to avoid parsing closing tags as links: `[b]foo[/b](bar)`.
-markdown_link = '[' nonnewline+ >mark_b1 %mark_b2 :>> '](' delimited_absolute_url >mark_a1 %mark_a2 :>> ')';
+markdown_link = '[' ws* (nonnewline - '[' - ']')+ >mark_a1 %mark_a2 :>> ws* '](' ((delimited_absolute_url | delimited_relative_url)  - '(' - ')') >mark_b1 %mark_b2 :>> ')';
 html_link = '<a'i ws+ 'href="'i (delimited_absolute_url | delimited_relative_url) >mark_a1 %mark_a2 :>> '">' nonnewline+ >mark_b1 %mark_b2 :>> '</a>'i;
 
 unquoted_bbcode_url = delimited_absolute_url | delimited_relative_url;
@@ -335,11 +335,11 @@ inline := |*
     append_bare_named_url(sm, { sm->b1, sm->b2 + 1 }, { sm->a1, sm->a2 });
   };
 
-  bracketed_textile_link | named_bbcode_link => {
+  bracketed_textile_link | named_bbcode_link | markdown_link => {
     append_named_url(sm, { sm->b1, sm->b2 }, { sm->a1, sm->a2 });
   };
 
-  markdown_link | html_link => {
+  html_link => {
     append_named_url(sm, { sm->a1, sm->a2 }, { sm->b1, sm->b2 });
   };
 
