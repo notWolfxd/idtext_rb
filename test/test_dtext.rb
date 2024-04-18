@@ -44,7 +44,7 @@
     end
   
     def assert_wiki(expected, dtext)
-      assert_equal(expected.sort, DText.c_parse_wiki(dtext).sort)
+      assert_equal(expected.sort, DText.c_parse_wiki_pages(dtext).sort)
     end
   
     def test_relative_urls
@@ -510,13 +510,13 @@
   
       assert_parse('<p>foo <span style="color:red;">bar</span> baz</p>', "foo [color=red]bar[/color] baz")
       assert_parse('<p>foo <span style="color:red;">bar</span> baz</p>', "foo <color=red>bar</color> baz")
-      assert_parse('<span style="color:red;"><code>Sample</code></span>', "[color=red][code]Sample[/code][/color]")
-      assert_parse('<span style="color:red;"><code>Sample</code></span>', "<color=red><code>Sample</code></color>")
+      assert_parse('<p style="color:red;"><code>Sample</code></p>', "[color=red][code]Sample[/code][/color]")
+      assert_parse('<p style="color:red;"><code>Sample</code></p>', "<color=red><code>Sample</code></color>")
       
       assert_parse('<p>foo <span style="color:#AAA;">bar</span> baz</p>', "foo [color=#AAA]bar[/color] baz")
       assert_parse('<p>foo <span style="color:#AAA;">bar</span> baz</p>', "foo <color=#AAA>bar</color> baz")
-      assert_parse('<span style="color:#AAA;"><code>Sample</code></span>', "[color=#AAA][code]Sample[/code][/color]")
-      assert_parse('<span style="color:#AAA;"><code>Sample</code></span>', "<color=#AAA><code>Sample</code></color>")
+      assert_parse('<p style="color:#AAA;"><code>Sample</code></p>', "[color=#AAA][code]Sample[/code][/color]")
+      assert_parse('<p style="color:#AAA;"><code>Sample</code></p>', "<color=#AAA><code>Sample</code></color>")
   
       assert_parse('<p>foo bar[/color] baz</p>', "foo bar[/color] baz")
       assert_parse('<p>foo bar&lt;/color&gt; baz</p>', "foo bar</color> baz")
@@ -1538,7 +1538,7 @@
       assert_parse_id_link("dtext-artist-id-link", "/artists/1234", "artist #1234")
       assert_parse_id_link("dtext-tag-alias-id-link", "/tag_aliases/1234", "tag alias #1234")
       assert_parse_id_link("dtext-tag-implication-id-link", "/tag_implications/1234", "tag implication #1234")
-      assert_parse_id_link("dtext-mod-action-id-link", "/mod_actions/1234", "mod action #1234")
+      assert_parse_id_link("dtext-mod-action-id-link", "/mod_actions?id=1234", "mod action #1234")
       assert_parse_id_link("dtext-wiki-page-id-link", "/wiki/1234", "wiki #1234")
       assert_parse_id_link("dtext-dmail-id-link", "/dmails/1234", "dmail #1234")
   
@@ -1786,13 +1786,19 @@
       assert_parse('<p>foo <emoji data-name="smile" data-mode="inline"></emoji></p>', "foo :smile:", emojis:)
       assert_parse('<emoji data-name="smile" data-mode="block"></emoji>', ":smile:", emojis:)
   
-      assert_parse('<p>foo<br><emoji data-name="smile" data-mode="inline"></emoji></p>', "foo\n:smile:", emojis:)
+      assert_parse('<p>foo</p><emoji data-name="smile" data-mode="block"></emoji>', "foo\n:smile:", emojis:)
+      assert_parse('<p>foo<br>:bar:</p>', "foo\n:bar:", emojis:)
+      assert_parse('<p>foo<br><emoji data-name="smile" data-mode="inline"></emoji>foo</p>', "foo\n:smile:foo", emojis:)
       assert_parse('<emoji data-name="smile" data-mode="block"></emoji><p>foo</p>', " :smile: \nfoo", emojis:)
   
       assert_parse('<emoji data-name="smile" data-mode="block"></emoji>', ":Smile:", emojis:)
       assert_parse('<p>(<emoji data-name="smile" data-mode="inline"></emoji>)</p>', "(:smile:)", emojis:)
       assert_parse('<p>&quot;<emoji data-name="smile" data-mode="inline"></emoji>&quot;</p>', '":smile:"', emojis:)
-      assert_parse('<p><emoji data-name="smile" data-mode="inline"></emoji>:smile:</p>', ":smile::smile:", emojis:)
+      
+      assert_parse('<p><emoji data-name="smile" data-mode="inline"></emoji><emoji data-name="smile" data-mode="inline"></emoji></p>', ":smile::smile:", emojis:)
+      assert_parse('<p>foo<emoji data-name="smile" data-mode="inline"></emoji>bar</p>', "foo:smile:bar", emojis:)
+      assert_parse('<p>:foo<emoji data-name="smile" data-mode="inline"></emoji></p>', ":foo:smile:", emojis:)
+      assert_parse('<h4><emoji data-name="smile" data-mode="inline"></emoji></h4>', "h4.:smile:", emojis:)
     end
   
     def test_inline_mode
