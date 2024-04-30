@@ -337,8 +337,9 @@ inline := |*
   'tag implication #'i id      => { append_id_link("tag implication", "tag-implication", "/tag_implications/", { a1, a2 }); };
   'tag translation #'i id      => { append_id_link("tag translation", "tag-translation", "/tag_translations/", { a1, a2 }); };
   'tag mass edit #'i id      => { append_id_link("tag mass edit", "tag-mass-edit", "/tag_mass_edits/", { a1, a2 }); };
-  'book #'i id      => { append_id_link("book", "book", "/books/", { a1, a2 }); };
+  'book #'i id      => { append_id_link("book", "book", "/pools/", { a1, a2 }); };
   'series #'i id      => { append_id_link("series", "series", "/series/", { a1, a2 }); };
+  'companion #'i id      => { append_id_link("companion", "companion", "/companions/", { a1, a2 }); };
   'mod action #'i id       => { append_id_link("mod action", "mod-action", "/mod_actions?id=", { a1, a2 }); };
   'record #'i id         => { append_id_link("record", "user-record", "/user_records?id=", { a1, a2 }); };
   'wiki #'i id             => { append_id_link("wiki", "wiki-page", "/wiki/", { a1, a2 }); };
