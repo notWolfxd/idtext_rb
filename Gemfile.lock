@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    idtext_rb (1.13.5)
+    idtext_rb (1.14.0)
 
 GEM
   remote: https://rubygems.org/

@@ -84,6 +84,8 @@ action mark_f1 { f1 = p; }
 action mark_f2 { f2 = p; }
 action mark_g1 { g1 = p; }
 action mark_g2 { g2 = p; }
+action mark_h1 { h1 = p; }
+action mark_h2 { h2 = p; }
 
 action after_mention_boundary { is_mention_boundary(p[-1]) }
 action mentions_enabled { options.f_mentions }
@@ -250,7 +252,8 @@ aliased_expand = ('[expand'i (ws* '=' ws* | ws+) ((nonnewline - ']')* >mark_a1 %
 aliased_color = ('[color'i (ws* '=' ws* | ws+) ((nonnewline - ']')* >mark_a1 %mark_a2) ']')
                | ('<color'i (ws* '=' ws* | ws+) ((nonnewline - '>')* >mark_a1 %mark_a2) '>');
 
-list_item = '*'+ >mark_e1 %mark_e2 ws+ nonnewline+ >mark_f1 %mark_f2;
+list_item = [ ]* >mark_h1 %mark_h2 '*'+ >mark_e1 %mark_e2 ws+ nonnewline+ >mark_f1 %mark_f2;
+ordered_list_item = [ ]* >mark_h1 %mark_h2 digit+ '.' ws+ nonnewline+ >mark_f1 %mark_f2;
 
 hr = ws* ('[hr]'i | '<hr>'i) ws* eol+;
 
@@ -292,7 +295,7 @@ open_u = '[u]'i | '<u>'i;
 
 close_spoilers = ('[/spoiler'i 's'i? ']') | ('</spoiler'i 's'i? '>');
 close_nodtext = '[/nodtext]'i | '</nodtext>'i;
-close_quote = '[/quote'i (']' when in_quote) | '</quote'i ('>' when in_quote) | '</blockquote'i (']' when in_quote);
+close_quote = '[/quote'i (']' when in_quote) | '</quote'i ('>' when in_quote) | '</blockquote'i ('>' when in_quote);
 close_expand = '[/expand'i (']' when in_expand) | '</expand'i ('>' when in_expand);
 close_code = '[/code]'i | '</code>'i;
 close_table = '[/table]'i | '</table>'i;
@@ -331,15 +334,14 @@ inline := |*
   'dmail #'i id            => { append_id_link("dmail", "dmail", "/dmails/", { a1, a2 }); };
   'pool #'i id             => { append_id_link("pool", "pool", "/pools/", { a1, a2 }); };
   'user #'i id             => { append_id_link("user", "user", "/users/", { a1, a2 }); };
-  'artist #'i id           => { append_id_link("artist", "artist", "/artists/", { a1, a2 }); };
   'user report #'i id           => { append_id_link("user report", "user-report", "/user_flags/", { a1, a2 }); };
   'tag alias #'i id            => { append_id_link("tag alias", "tag-alias", "/tag_aliases/", { a1, a2 }); };
   'tag implication #'i id      => { append_id_link("tag implication", "tag-implication", "/tag_implications/", { a1, a2 }); };
   'tag translation #'i id      => { append_id_link("tag translation", "tag-translation", "/tag_translations/", { a1, a2 }); };
   'tag mass edit #'i id      => { append_id_link("tag mass edit", "tag-mass-edit", "/tag_mass_edits/", { a1, a2 }); };
-  'book #'i id      => { append_id_link("book", "book", "/pools/", { a1, a2 }); };
-  'series #'i id      => { append_id_link("series", "series", "/series/", { a1, a2 }); };
-  'companion #'i id      => { append_id_link("companion", "companion", "/companions/", { a1, a2 }); };
+  'book #'i id      => { append_id_link("book", "book", "https://www.idolcomplex.com/books/", { a1, a2 }); };
+  'series #'i id      => { append_id_link("series", "series", "https://www.idolcomplex.com/series/", { a1, a2 }); };
+  'companion #'i id      => { append_id_link("companion", "companion", "https://www.idolcomplex.com/companions/", { a1, a2 }); };
   'mod action #'i id       => { append_id_link("mod action", "mod-action", "/mod_actions?id=", { a1, a2 }); };
   'record #'i id         => { append_id_link("record", "user-record", "/user_records?id=", { a1, a2 }); };
   'wiki #'i id             => { append_id_link("wiki", "wiki-page", "/wiki/", { a1, a2 }); };
@@ -399,7 +401,7 @@ inline := |*
     append_emoji({ f1, f2 + 1 }, "inline");
   };
 
-  newline list_item => {
+  newline (list_item | ordered_list_item) => {
     g_debug("inline list");
     fexec ts + 1;
     fret;
@@ -490,7 +492,7 @@ inline := |*
     dstack_open_element(INLINE_SPOILER, "<span class=\"spoiler\">");
   };
 
-  newline? close_spoilers => {
+  newline? ws* close_spoilers => {
     if (dstack_is_open(INLINE_SPOILER)) {
       dstack_close_element(INLINE_SPOILER, { ts, te });
     } else if (dstack_is_open(BLOCK_SPOILER)) {
@@ -580,9 +582,6 @@ inline := |*
 
     if (header_mode || dstack_is_open(BLOCK_MEDIA_EMBED)) {
       dstack_close_leaf_blocks();
-      fret;
-    } else if (dstack_is_open(BLOCK_UL)) {
-      dstack_close_list();
       fret;
     } else {
       append("<br>");
@@ -826,7 +825,21 @@ main := |*
   };
 
   list_item => {
-    dstack_open_list(e2 - e1);
+    dstack_open_list(
+      BLOCK_UL,
+      (e2 - e1) + ((h2 - h1) / 2)
+    );
+
+    fexec f1;
+    fcall inline;
+  };
+
+  ordered_list_item => {
+    dstack_open_list(
+      BLOCK_OL,
+      1 + ((h2 - h1) / 2)
+    );
+
     fexec f1;
     fcall inline;
   };
@@ -1056,17 +1069,12 @@ void StateMachine::append_internal_url(const DText::URL& url) {
         return append_id_link("pool", "pool", "/pools/", id);
       } else if (controller == "comments") {
         return append_id_link("comment", "comment", "/comments/", id);
-      } else if (controller == "forum") {
-        return append_id_link("forum", "forum-post", "/forum/", id);
+      } else if (controller == "forums") {
+        return append_id_link("forum", "forum-post", "/forums/", id);
       } else if (controller == "users") {
         return append_id_link("user", "user", "/users/", id);
-      } else if (controller == "artists") {
-        return append_id_link("artist", "artist", "/artists/", id);
       } else if (controller == "notes") {
         return append_id_link("note", "note", "/notes/", id);
-      } else if (controller == "favorite_groups" && query.empty()) {
-        // https://danbooru.donmai.us/favorite_groups/1234?page=2
-        return append_id_link("favgroup", "favorite-group", "/favorite_groups/", id);
       } else if (controller == "wiki" && fragment.empty()) {
         // http://danbooru.donmai.us/wiki_pages/10933#dtext-self-upload
         return append_id_link("wiki", "wiki-page", "/wiki/", id);
@@ -1414,6 +1422,7 @@ void StateMachine::dstack_rewind() {
     case BLOCK_THEAD: append_block("</thead>"); break;
     case BLOCK_TBODY: append_block("</tbody>"); break;
     case BLOCK_TR: append_block("</tr>"); break;
+    case BLOCK_OL: append_block("</ol>"); break;
     case BLOCK_UL: append_block("</ul>"); break;
     case BLOCK_LI: append_block("</li>"); break;
     case BLOCK_H6: append_block("</h6>"); header_mode = false; break;
@@ -1455,7 +1464,27 @@ void StateMachine::dstack_close_all() {
   }
 }
 
-void StateMachine::dstack_open_list(int depth) {
+int StateMachine::current_list_depth() {
+  int depth = 0;
+
+  for (auto const &node : dstack) {
+    if (node == BLOCK_UL || node == BLOCK_OL)
+      depth++;
+  }
+
+  return depth;
+}
+
+element_t StateMachine::current_list_type() {
+  for (auto it = dstack.rbegin(); it != dstack.rend(); ++it) {
+    if (*it == BLOCK_UL || *it == BLOCK_OL)
+      return *it;
+  }
+
+  return BLOCK_P;
+}
+
+void StateMachine::dstack_open_list(element_t type, int depth) {
   g_debug("open list");
 
   if (dstack_is_open(BLOCK_LI)) {
@@ -1464,12 +1493,31 @@ void StateMachine::dstack_open_list(int depth) {
     dstack_close_leaf_blocks();
   }
 
-  while (dstack_count(BLOCK_UL) < depth) {
-    dstack_open_element(BLOCK_UL, "<ul>");
+  while (current_list_depth() > depth) {
+    if (dstack_is_open(BLOCK_UL))
+      dstack_close_until(BLOCK_UL);
+    else if (dstack_is_open(BLOCK_OL))
+      dstack_close_until(BLOCK_OL);
+    else
+      break;
   }
 
-  while (dstack_count(BLOCK_UL) > depth) {
-    dstack_close_until(BLOCK_UL);
+  while (current_list_depth() < depth) {
+    if (type == BLOCK_UL)
+      dstack_open_element(BLOCK_UL, "<ul>");
+    else
+      dstack_open_element(BLOCK_OL, "<ol>");
+  }
+
+  if (current_list_depth() == depth) {
+    element_t current = current_list_type();
+
+    if (current != type) {
+      if (type == BLOCK_UL)
+        dstack_open_element(BLOCK_UL, "<ul>");
+      else
+        dstack_open_element(BLOCK_OL, "<ol>");
+    }
   }
 
   dstack_open_element(BLOCK_LI, "<li>");
@@ -1478,6 +1526,10 @@ void StateMachine::dstack_open_list(int depth) {
 void StateMachine::dstack_close_list() {
   while (dstack_is_open(BLOCK_UL)) {
     dstack_close_until(BLOCK_UL);
+  }
+
+  while (dstack_is_open(BLOCK_OL)) {
+    dstack_close_until(BLOCK_OL);
   }
 }
 

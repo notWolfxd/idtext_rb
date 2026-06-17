@@ -28,6 +28,7 @@ typedef enum element_t {
   BLOCK_TR,
   BLOCK_TH,
   BLOCK_TD,
+  BLOCK_OL,
   BLOCK_UL,
   BLOCK_LI,
   BLOCK_H1,
@@ -72,6 +73,7 @@ static const char* element_names[] = {
   "BLOCK_TR",
   "BLOCK_TH",
   "BLOCK_TD",
+  "BLOCK_OL",
   "BLOCK_UL",
   "BLOCK_LI",
   "BLOCK_H1",
@@ -153,6 +155,8 @@ public:
   const char * f2 = NULL;
   const char * g1 = NULL;
   const char * g2 = NULL;
+  const char * h1 = NULL;
+  const char * h2 = NULL;
   bool header_mode = false;
   TagAttributes tag_attributes;
 
@@ -180,7 +184,9 @@ public:
   int dstack_count(element_t element);
   void dstack_open_element(element_t type, const char *html);
   void dstack_open_element_attributes(element_t type, std::string_view tag_name);
-  void dstack_open_list(int depth);
+  element_t current_list_type();
+  int current_list_depth();
+  void dstack_open_list(element_t type, int depth);
   void dstack_close_list();
   bool dstack_close_element(element_t type, const std::string_view tag_name);
   void dstack_close_leaf_blocks();

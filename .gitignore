@@ -1,0 +1,9 @@
+tmp/
+test/files/*.json.gz
+*.git
+*.bundle
+*.o
+*.so
+*.exe
+*.exe.*
+*~
