@@ -8302,6 +8302,7 @@ void StateMachine::append_absolute_link(const std::string_view url, const std::s
   }
 
   append("</a>");
+  tag_attributes.clear();
 }
 
 void StateMachine::append_mention(const std::string_view name) {
@@ -8425,7 +8426,9 @@ void StateMachine::append_named_url(const std::string_view url, const std::strin
   } else if (url[0] == '/' || url[0] == '#') {
     append("<a class=\"dtext-link\" href=\"");
     append_relative_url(url);
-    append("\">");
+    append("\"");
+    dstack_append_element_attributes("a");
+    append(">");
     append(parsed_title);
     append("</a>");
   } else if (url == title) {
@@ -8981,7 +8984,7 @@ std::string StateMachine::parse() {
   g_debug("parse '%.*s'", (int)(input.size() - 2), input.c_str() + 1);
 
   
-#line 8976 "ext/dtext/dtext.cpp"
+#line 8979 "ext/dtext/dtext.cpp"
 	{
 	( top) = 0;
 	( ts) = 0;
@@ -8989,9 +8992,9 @@ std::string StateMachine::parse() {
 	( act) = 0;
 	}
 
-#line 1722 "ext/dtext/dtext.cpp.rl"
+#line 1725 "ext/dtext/dtext.cpp.rl"
   
-#line 8982 "ext/dtext/dtext.cpp"
+#line 8985 "ext/dtext/dtext.cpp"
 	{
 	int _klen;
 	unsigned int _trans;
@@ -9013,7 +9016,7 @@ _resume:
 #line 1 "NONE"
 	{( ts) = ( p);}
 	break;
-#line 9002 "ext/dtext/dtext.cpp"
+#line 9005 "ext/dtext/dtext.cpp"
 		}
 	}
 
@@ -11144,7 +11147,7 @@ _eof_trans:
 	}
 	}
 	break;
-#line 10889 "ext/dtext/dtext.cpp"
+#line 10892 "ext/dtext/dtext.cpp"
 		}
 	}
 
@@ -11157,7 +11160,7 @@ _again:
 #line 1 "NONE"
 	{( ts) = 0;}
 	break;
-#line 10900 "ext/dtext/dtext.cpp"
+#line 10903 "ext/dtext/dtext.cpp"
 		}
 	}
 
@@ -11177,7 +11180,7 @@ _again:
 	_out: {}
 	}
 
-#line 1723 "ext/dtext/dtext.cpp.rl"
+#line 1726 "ext/dtext/dtext.cpp.rl"
 
   g_debug("EOF; closing stray blocks");
   dstack_close_all();

@@ -1040,6 +1040,7 @@ void StateMachine::append_absolute_link(const std::string_view url, const std::s
   }
 
   append("</a>");
+  tag_attributes.clear();
 }
 
 void StateMachine::append_mention(const std::string_view name) {
@@ -1163,7 +1164,9 @@ void StateMachine::append_named_url(const std::string_view url, const std::strin
   } else if (url[0] == '/' || url[0] == '#') {
     append("<a class=\"dtext-link\" href=\"");
     append_relative_url(url);
-    append("\">");
+    append("\"");
+    dstack_append_element_attributes("a");
+    append(">");
     append(parsed_title);
     append("</a>");
   } else if (url == title) {
