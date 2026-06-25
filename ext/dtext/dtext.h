@@ -16,6 +16,7 @@ typedef enum element_t {
   BLOCK_CENTER,
   BLOCK_QUOTE,
   BLOCK_EXPAND,
+  BLOCK_DIV,
   BLOCK_COLOR,
   BLOCK_SPOILER,
   BLOCK_NODTEXT,
@@ -61,6 +62,7 @@ static const char* element_names[] = {
   "BLOCK_CENTER",
   "BLOCK_QUOTE",
   "BLOCK_EXPAND",
+  "BLOCK_DIV",
   "BLOCK_COLOR",
   "BLOCK_SPOILER",
   "BLOCK_NODTEXT",
@@ -183,6 +185,7 @@ public:
   void dstack_close_all();
   int dstack_count(element_t element);
   void dstack_open_element(element_t type, const char *html);
+  void dstack_append_element_attributes(std::string_view tag_name);
   void dstack_open_element_attributes(element_t type, std::string_view tag_name);
   element_t current_list_type();
   int current_list_depth();

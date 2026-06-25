@@ -30,15 +30,18 @@ static const std::unordered_map<std::string_view, const std::unordered_set<std::
   { "th",       { "align", "colspan", "rowspan" } },
   { "col",      { "align", "span" } },
   { "colgroup", {} },
+  { "a",        { "target" } },
 };
 
 // Permitted HTML attribute values.
 static const std::unordered_set<std::string_view> align_values = { "left", "center", "right", "justify" };
+static const std::unordered_set<std::string_view> target_values = { "_blank" };
 static const std::unordered_map<std::string_view, std::function<bool(std::string_view)>> permitted_attribute_values = {
   { "align",   [](auto value) { return align_values.find(value) != align_values.end(); } },
   { "span",    [](auto value) { return std::all_of(value.begin(), value.end(), isdigit); } },
   { "colspan", [](auto value) { return std::all_of(value.begin(), value.end(), isdigit); } },
   { "rowspan", [](auto value) { return std::all_of(value.begin(), value.end(), isdigit); } },
+  { "target",  [](auto value) { return target_values.find(value) != target_values.end(); } },
 };
 
 static unsigned char ascii_tolower(unsigned char c);
@@ -92,6 +95,7 @@ action mentions_enabled { options.f_mentions }
 action media_embeds_enabled { options.f_media_embeds }
 action in_quote { dstack_is_open(BLOCK_QUOTE) }
 action in_expand { dstack_is_open(BLOCK_EXPAND) }
+action in_div { dstack_is_open(BLOCK_DIV) }
 action in_spoiler { dstack_is_open(BLOCK_SPOILER) }
 action is_allowed_emoji { is_allowed_emoji({ f1, f2 + 1 }) }
 action save_tag_attribute { tag_attributes[{ a1, a2 }] = { b1, b2 }; }
@@ -169,9 +173,10 @@ delimited_mention = '<@' (nonspace nonnewline*) >mark_a1 @mark_a2 :>> '>';
 
 # The list of tags that can appear in brackets (e.g. [quote]).
 bracket_tags = (
-  'spoiler'i | 'spoilers'i | 'nodtext'i | 'quote'i | 'expand'i | 'code'i |
+  'spoiler'i | 'spoilers'i | 'nodtext'i | 'quote'i | 'expand'i | 'div'i | 'code'i |
   'table'i | 'colgroup'i | 'col'i | 'thead'i | 'tbody'i | 'tr'i | 'th'i | 'td'i |
-  'br'i | 'hr'i | 'url'i | 'tn'i | 'b'i | 'i'i | 's'i | 'u'i | 'center'i | 'color'i
+  'br'i | 'hr'i | 'url'i | 'tn'i | 'b'i | 'i'i | 's'i | 'u'i | 'center'i | 'color'i |
+  'h1'i | 'h2'i | 'h3'i | 'h4'i | 'h5'i | 'h6'i
 );
 
 http = 'http'i 's'i? '://';
@@ -202,9 +207,8 @@ delimited_url = '<' delimited_absolute_url >mark_a1 %mark_a2 :>> '>';
 basic_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':' (bare_absolute_url | bare_relative_url) >mark_b1 @mark_b2;
 bracketed_textile_link = '"' ^'"'+ >mark_a1 %mark_a2 '"' ':[' (delimited_absolute_url | delimited_relative_url) >mark_b1 %mark_b2 :>> ']';
 
-backwards_markdown_link = '[' (delimited_absolute_url | ((delimited_relative_url -- ']') - '/' bracket_tags)) >mark_a1 %mark_a2 :>> '](' nonnewline+ >mark_b1 %mark_b2 :>> ')';
+backwards_markdown_link = '[' (delimited_absolute_url | ((delimited_relative_url -- ']') - '/' bracket_tags)) >mark_d1 %mark_d2 :>> '](' nonnewline+ >mark_b1 %mark_b2 :>> ')';
 markdown_link = (('[' nonnewline+ >mark_f1 %mark_f2 :>> ']') - ('[' '/'? bracket_tags ']')) '(' (delimited_absolute_url | delimited_relative_url) >mark_g1 %mark_g2 :>> ')';
-html_link = '<a'i ws+ 'href="'i (delimited_absolute_url | delimited_relative_url) >mark_a1 %mark_a2 :>> '">' nonnewline+ >mark_b1 %mark_b2 :>> '</a>'i;
 
 unquoted_bbcode_url = delimited_absolute_url | delimited_relative_url;
 double_quoted_bbcode_url = '"' unquoted_bbcode_url >mark_b1 %mark_b2 :>> '"';
@@ -251,6 +255,8 @@ aliased_expand = ('[expand'i (ws* '=' ws* | ws+) ((nonnewline - ']')* >mark_a1 %
                | ('<expand'i (ws* '=' ws* | ws+) ((nonnewline - '>')* >mark_a1 %mark_a2) '>');
 aliased_color = ('[color'i (ws* '=' ws* | ws+) ((nonnewline - ']')* >mark_a1 %mark_a2) ']')
                | ('<color'i (ws* '=' ws* | ws+) ((nonnewline - '>')* >mark_a1 %mark_a2) '>');
+aliased_div = ('[div'i (ws* '=' ws* | ws+) ((nonnewline - ']')* >mark_a1 %mark_a2) ']')
+               | ('<div'i (ws* '=' ws* | ws+) ((nonnewline - '>')* >mark_a1 %mark_a2) '>');
 
 list_item = [ ]* >mark_h1 %mark_h2 '*'+ >mark_e1 %mark_e2 ws+ nonnewline+ >mark_f1 %mark_f2;
 ordered_list_item = [ ]* >mark_h1 %mark_h2 digit+ '.' ws+ nonnewline+ >mark_f1 %mark_f2;
@@ -269,10 +275,14 @@ tag_attribute_value = double_quoted_value | single_quoted_value | unquoted_value
 tag_attribute = ws+ (alnum+ >mark_a1 %mark_a2) ws* '=' ws* tag_attribute_value %save_tag_attribute;
 tag_attributes = tag_attribute*;
 
+html_link = '<a'i (tag_attributes ws+ 'href="'i (delimited_absolute_url | delimited_relative_url) >mark_d1 %mark_d2 '"' tag_attributes) '>' nonnewline+ >mark_b1 %mark_b2 :>> '</a>'i;
+#html_link = '<a'i tag_attributes :>> ws+ 'href="'i (delimited_absolute_url | delimited_relative_url) >mark_a1 %mark_a2 :>> '">' nonnewline+ >mark_b1 %mark_b2 :>> '</a>'i;
+
 open_spoilers = ('[spoiler'i 's'i? ']') | ('<spoiler'i 's'i? '>');
 open_nodtext = '[nodtext]'i | '<nodtext>'i;
 open_quote = '[quote]'i | '<quote>'i | '<blockquote>'i;
 open_expand = '[expand]'i | '<expand>'i;
+open_div = '[div]'i | '<div>'i;
 open_code = '[code]'i | '<code>'i;
 open_code_lang = '[code'i ws* '=' ws* (alnum+ >mark_a1 %mark_a2) ']' | '<code'i ws* '=' ws* (alnum+ >mark_a1 %mark_a2) '>';
 open_table = '[table]'i | '<table>'i;
@@ -292,11 +302,13 @@ open_b = '[b]'i | '<b>'i | '<strong>'i;
 open_i = '[i]'i | '<i>'i | '<em>'i;
 open_s = '[s]'i | '<s>'i;
 open_u = '[u]'i | '<u>'i;
+open_h = '[h'i [123456] >mark_a1 %mark_a2 ('#' header_id >mark_b1 %mark_b2 '.' ws*)? ']' | '<h'i [123456] >mark_a1 %mark_a2 ('#' header_id >mark_b1 %mark_b2 '.' ws*)? '>';
 
 close_spoilers = ('[/spoiler'i 's'i? ']') | ('</spoiler'i 's'i? '>');
 close_nodtext = '[/nodtext]'i | '</nodtext>'i;
 close_quote = '[/quote'i (']' when in_quote) | '</quote'i ('>' when in_quote) | '</blockquote'i ('>' when in_quote);
 close_expand = '[/expand'i (']' when in_expand) | '</expand'i ('>' when in_expand);
+close_div = '[/div'i (']' when in_div) | '</div'i ('>' when in_div);
 close_code = '[/code]'i | '</code>'i;
 close_table = '[/table]'i | '</table>'i;
 close_colgroup = '[/colgroup]'i | '</colgroup>'i;
@@ -312,6 +324,7 @@ close_b = '[/b]'i | '</b>'i | '</strong>'i;
 close_i = '[/i]'i | '</i>'i | '</em>'i;
 close_s = '[/s]'i | '</s>'i;
 close_u = '[/u]'i | '</u>'i;
+close_h = '[/h'i [123456] >mark_a1 %mark_a2 ']' | '</h'i [123456] >mark_a1 %mark_a2 '>';
 
 basic_inline := |*
   open_b  => { dstack_open_element(INLINE_B, "<strong>"); };
@@ -378,7 +391,7 @@ inline := |*
   };
 
   backwards_markdown_link | html_link => {
-    append_named_url({ a1, a2 }, { b1, b2 });
+    append_named_url({ d1, d2 }, { b1, b2 });
   };
 
   markdown_link => {
@@ -464,6 +477,19 @@ inline := |*
     }
   };
 
+  close_h => {
+    static element_t blocks[] = {
+      BLOCK_H1, BLOCK_H2, BLOCK_H3,
+      BLOCK_H4, BLOCK_H5, BLOCK_H6
+    };
+
+    element_t block = blocks[*a1 - '1'];
+
+    if (dstack_close_element(block, { ts, te })) {
+      fret;
+    }
+  };
+
   open_br => {
     if (header_mode) {
       append_html_escaped("<br>");
@@ -511,7 +537,7 @@ inline := |*
   # these are block level elements that should kick us out of the inline
   # scanner
 
-  newline (code_fence | open_code | open_code_lang | open_nodtext | open_table | open_expand | aliased_expand | hr | header | header_with_id | media_embed) => {
+  newline (code_fence | open_code | open_code_lang | open_nodtext | open_table | open_expand | open_div | aliased_expand | aliased_div | hr | header | header_with_id | open_h | media_embed) => {
     dstack_close_leaf_blocks();
     fexec ts;
     fret;
@@ -530,6 +556,11 @@ inline := |*
 
   (newline ws*)? close_expand ws* => {
     dstack_close_until(BLOCK_EXPAND);
+    fret;
+  };
+
+  (newline ws*)? close_div ws* => {
+    dstack_close_until(BLOCK_DIV);
     fret;
   };
 
@@ -708,6 +739,11 @@ main := |*
     fcall inline;
   };
 
+  open_h ws* => {
+    append_header(*a1, { b1, b2 });
+    fcall inline;
+  };
+
   open_quote space* => {
     dstack_close_leaf_blocks();
     dstack_open_element(BLOCK_QUOTE, "<blockquote>");
@@ -758,6 +794,23 @@ main := |*
 
   space* close_expand ws* => {
     dstack_close_until(BLOCK_EXPAND);
+  };
+
+  open_div space* => {
+    dstack_close_leaf_blocks();
+    dstack_open_element(BLOCK_DIV, "<div>");
+  };
+
+  aliased_div space* => {
+    g_debug("block [div=]");
+    dstack_close_leaf_blocks();
+    dstack_open_element(BLOCK_DIV, "<div class=\"");
+    append_block_html_escaped({ a1, a2 });
+    append_block("\">");
+  };
+  
+  space* close_div ws* => {
+    dstack_close_until(BLOCK_DIV);
   };
 
   open_nodtext blank_line? => {
@@ -857,7 +910,7 @@ main := |*
     g_debug("block char");
     fhold;
 
-    if (dstack.empty() || dstack_check(BLOCK_QUOTE) || dstack_check(BLOCK_SPOILER) || dstack_check(BLOCK_EXPAND) || dstack_check(BLOCK_MEDIA_GALLERY)) {
+    if (dstack.empty() || dstack_check(BLOCK_QUOTE) || dstack_check(BLOCK_SPOILER) || dstack_check(BLOCK_EXPAND) || dstack_check(BLOCK_DIV) || dstack_check(BLOCK_MEDIA_GALLERY)) {
       dstack_open_element(BLOCK_P, "<p>");
     }
 
@@ -976,7 +1029,9 @@ void StateMachine::append_absolute_link(const std::string_view url, const std::s
   }
 
   append_html_escaped(url);
-  append("\">");
+  append("\"");
+  dstack_append_element_attributes("a");
+  append(">");
 
   if (escape_title) {
     append_html_escaped(title);
@@ -1341,6 +1396,25 @@ void StateMachine::dstack_open_element(element_t type, const char * html) {
   }
 }
 
+void StateMachine::dstack_append_element_attributes(std::string_view tag_name) {
+  auto& permitted_names = permitted_attribute_names.at(tag_name);
+  for (auto& [name, value] : tag_attributes) {
+    if (permitted_names.find(name) != permitted_names.end()) {
+      auto validate_value = permitted_attribute_values.at(name);
+
+      if (validate_value(value)) {
+        append_block(" ");
+        append_block_html_escaped(name);
+        append_block("=\"");
+        append_block_html_escaped(value);
+        append_block("\"");
+      }
+    }
+  }
+
+  tag_attributes.clear();
+}
+
 void StateMachine::dstack_open_element_attributes(element_t type, std::string_view tag_name) {
   dstack_push(type);
   append_block("<");
@@ -1395,6 +1469,7 @@ void StateMachine::dstack_rewind() {
     case BLOCK_SPOILER: append_block("</div>"); break;
     case BLOCK_QUOTE: append_block("</blockquote>"); break;
     case BLOCK_EXPAND: append_block("</div></details>"); break;
+    case BLOCK_DIV: append_block("</div>"); break;
     case BLOCK_COLOR: append_block("</p>"); break;
     case BLOCK_NODTEXT: append_block("</p>"); break;
     case BLOCK_CODE: append_block("</pre>"); break;
@@ -1438,12 +1513,12 @@ void StateMachine::dstack_rewind() {
   }
 }
 
-// container blocks: [spoiler], [quote], [expand], [center], [tn], media galleries (`* !post #1`)
+// container blocks: [spoiler], [quote], [expand], [div], [center], [tn], media galleries (`* !post #1`)
 // leaf blocks: [nodtext], [code], [table], [td]?, [th]?, <h1>, <p>, <li>, <ul>
 void StateMachine::dstack_close_leaf_blocks() {
   g_debug("dstack close leaf blocks");
 
-  while (!dstack.empty() && !dstack_check(BLOCK_QUOTE) && !dstack_check(BLOCK_SPOILER) && !dstack_check(BLOCK_CENTER) && !dstack_check(BLOCK_EXPAND) && !dstack_check(BLOCK_COLOR) && !dstack_check(BLOCK_TN) && !dstack_check(BLOCK_MEDIA_GALLERY)) {
+  while (!dstack.empty() && !dstack_check(BLOCK_QUOTE) && !dstack_check(BLOCK_SPOILER) && !dstack_check(BLOCK_CENTER) && !dstack_check(BLOCK_EXPAND) && !dstack_check(BLOCK_DIV) && !dstack_check(BLOCK_COLOR) && !dstack_check(BLOCK_TN) && !dstack_check(BLOCK_MEDIA_GALLERY)) {
     dstack_rewind();
   }
 }
@@ -1548,6 +1623,8 @@ void StateMachine::clear_matches() {
   f2 = NULL;
   g1 = NULL;
   g2 = NULL;
+  h1 = NULL;
+  h2 = NULL;
 }
 
 bool StateMachine::is_allowed_emoji(const std::string_view name) {
